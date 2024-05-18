@@ -168,63 +168,95 @@ audio.addEventListener('durationchange', function() {
 // });
 var curretPlaylist;
 var currentIndexOfSongs;
-async function playPause2(_element,_index,_playlistTitle){
+async function fetchSongsWithPlaylist(playList){
+    let  mp3jpegResponse = await fetch("../mp3jpegList.json");
+    let  mp3jpegList= await mp3jpegResponse.json();
+    let songslist=[]
+    for (let ine = 0; ine < mp3jpegList.length; ine++) {
+        let e  =mp3jpegList[ine]
+            let e1 =e.split("/")
+            if(e1[0]==playList&&e1[1].endsWith(".mp3")){
+                songslist.push(e1[1])
+            }
+    }
+    return songslist
+}
+async function playPause2(_element,_index,_playlistTitle,playSong){
+    let songslist  = await fetchSongsWithPlaylist(_playlistTitle)
     if(_index<0){
         // await fetchPlaylistsSongs(_playlistTitle);
-        _element = songslist[songsplaylistsList.length-1];
-        _index = songsplaylistsList.length-1;
+        _element = songslist[songslist.length-1];
+        _index = songslist.length-1;
     }
-    else if(_index>songsplaylistsList.length-1){
+    else if(_index>songslist.length-1){
         _element = songslist[0];
         _index = 0;
     }
     curretPlaylist = _playlistTitle;
     currentIndexOfSongs = _index;
     let audio1 = document.getElementsByTagName("audio")[0];
-    document.getElementById("playedmusictitle").firstElementChild.textContent = _element;
+    document.getElementById("playedmusictitle").firstElementChild.textContent = _element.split(".mp3")[0];
     // console.log(_element);
     audio1.src = `Songs/${_playlistTitle}/${_element}`;
+    console.log(`Songs/${_playlistTitle}/${_element}/${_index}`);
+    playPause(playSong,_index);
+    
+}
+function updatelogo(){
     for (const iterator of document.getElementsByClassName("music")) {
-        if (iterator.getElementsByClassName("title")[0].textContent === document.getElementById("playedmusictitle").firstElementChild.textContent){     
-            iterator.querySelector(".playbutton").firstElementChild.children[0].classList.toggle("hidden");
-            iterator.querySelector(".playbutton").firstElementChild.children[1].classList.toggle("hidden");
+        if (iterator.getElementsByClassName("title")[0].textContent === document.getElementById("playedmusictitle").firstElementChild.textContent){
+            iterator.querySelector(".playbutton").firstElementChild.children[0].classList.add("hidden");
+            iterator.querySelector(".playbutton").firstElementChild.children[1].classList.remove("hidden");
         }
         else{
             iterator.querySelector(".playbutton").firstElementChild.children[0].classList.remove("hidden");
             iterator.querySelector(".playbutton").firstElementChild.children[1].classList.add("hidden");
         }
     }
-    playPause();
 }
-
-function playPause(){
+function playPause(playSong,_index){
     let childs =document.getElementById("btnplay").children;
-        if(childs[1].classList.contains("hidden")){
-            childs[0].classList.add("hidden");
-            childs[1].classList.remove("hidden");
-            audio.play();
-            
+    if(childs[1].classList.contains("hidden")||playSong){
+        childs[0].classList.add("hidden");
+        childs[1].classList.remove("hidden");
+        audio.play();
+        for (const iterator of document.getElementsByClassName("music")) {
+            if (iterator.getElementsByClassName("title")[0].textContent === document.getElementById("playedmusictitle").firstElementChild.textContent){
+                iterator.querySelector(".playbutton").firstElementChild.children[0].classList.add("hidden");
+                iterator.querySelector(".playbutton").firstElementChild.children[1].classList.remove("hidden");
+            }
         }
-        else{
-            audio.pause();
-            childs[0].classList.remove("hidden");
-            childs[1].classList.add("hidden");
+    }
+    else{
+        audio.pause();
+        childs[0].classList.remove("hidden");
+        childs[1].classList.add("hidden");
+        for (const iterator of document.getElementsByClassName("music")) {
+            if (iterator.getElementsByClassName("title")[0].textContent === document.getElementById("playedmusictitle").firstElementChild.textContent){
+                iterator.querySelector(".playbutton").firstElementChild.children[0].classList.remove("hidden");
+                iterator.querySelector(".playbutton").firstElementChild.children[1].classList.add("hidden");
+            }
         }
-        if(audio.played){
-           setInterval(() => {
-                let ctinperc = (audio.currentTime * 100 / audio.duration).toFixed(2);
-                progress.value = ctinperc;
-                let gradientValue = progress.value + '%';
-                document.documentElement.style.setProperty('--range-value', gradientValue);
-                barline.style.backgroundColor = `linear-gradient(to right, #1db954 0%, #1db954 var(--range-value), #121212 var(--range-value))`;
-                let CurrtotalMinutes = Math.floor(audio.currentTime / 60);
-                let CurrtotalSeconds = Math.floor(audio.currentTime % 60);
-                let CurrformattedTime = `${CurrtotalMinutes}:${CurrtotalSeconds < 10 ? '0' : ''}${CurrtotalSeconds}`;
+    }
+    
+    if(audio.played){
+        setInterval(() => {
+            let ctinperc = (audio.currentTime * 100 / audio.duration).toFixed(2);
+            progress.value = ctinperc;
+            let gradientValue = progress.value + '%';
+            document.documentElement.style.setProperty('--range-value', gradientValue);
+            barline.style.backgroundColor = `linear-gradient(to right, #1db954 0%, #1db954 var(--range-value), #121212 var(--range-value))`;
+            let CurrtotalMinutes = Math.floor(audio.currentTime / 60);
+            let CurrtotalSeconds = Math.floor(audio.currentTime % 60);
+            let CurrformattedTime = `${CurrtotalMinutes}:${CurrtotalSeconds < 10 ? '0' : ''}${CurrtotalSeconds}`;
                 starttime.textContent = CurrformattedTime;
             }, 500)
             
         }
 }
+btn2.addEventListener("click",()=>{
+    playPause(false)
+})
 function getfull(){
     return document.fullscreenElement||
     document.webkitFullscreenElement||
@@ -328,7 +360,7 @@ async function main(){
         })
     }
 
-    for (let index = 0; index < songsplaylistsList.length; index++) {
+    for (let index = 0; index < 5; index++) {
         let songslist = [];
         for (let i = 0; i < mp3jpegList.length; i++) {
             let e  =mp3jpegList[i]
@@ -337,12 +369,12 @@ async function main(){
                     songslist.push(e1[1])
                 }
         }
-        let button =document.getElementsByClassName("spotifyplaylists")[0].children[index].getElementsByTagName("button")[0]
+        let button =document.getElementsByClassName("spotifyplaylists")[0].children[index+1].getElementsByTagName("button")[0]
         button.addEventListener("click",()=>{
-            // let parent = button.parentElement;
-            // let playlistTitle=parent.getElementsByClassName("playlistTitle")[0].textContent;
-             fetchPlaylistsSongs(songsplaylistsList[index-1]);
-             playPause2(songslist[0],0,songsplaylistsList[index-1]);
+            let parent = button.parentElement;
+            let playlistTitle=parent.getElementsByClassName("playlistTitle")[0].textContent;
+             fetchPlaylistsSongs(playlistTitle);
+             playPause2(songslist[0],0,playlistTitle,true);
         })
         // const element = playlistDivs[index];
         // element.getElementsByClassName("playlistTitle")[0].textContent = anchors[index+1].textContent.replace("/","");
@@ -358,16 +390,20 @@ async function main(){
 
 var anchors2;
 async function fetchPlaylistsSongs(playlistTitle){
+    console.log(playlistTitle);
+    
     let  mp3jpegResponse = await fetch("../mp3jpegList.json");
     let  mp3jpegList= await mp3jpegResponse.json();
     songslist=[]
-    for (let index = 0; index < mp3jpegList.length; index++) {
-        let e  =mp3jpegList[index]
+    for (let ine = 0; ine < mp3jpegList.length; ine++) {
+        let e  =mp3jpegList[ine]
             let e1 =e.split("/")
             if(e1[0]==playlistTitle&&e1[1].endsWith(".mp3")){
                 songslist.push(e1[1])
+                console.log(songslist);
             }
     }
+    
     // console.log(songslist)
     // let div =  document.createElement("div")
     // div.innerHTML = response;
@@ -389,7 +425,7 @@ async function fetchPlaylistsSongs(playlistTitle){
         <span class="rounded-[7px] bg-[#292929]   px-[12px] py-[16px] inline-flex items-center justify-center">
             <svg data-encore-id="icon" class="fill-[#a7a7a7] " width="24" height="24" role="img" aria-hidden="true" data-testid="playlist" class="Svg-sc-ytk21e-0 bneLcE" viewBox="0 0 24 24"><path d="M6 3h15v15.167a3.5 3.5 0 1 1-3.5-3.5H19V5H8v13.167a3.5 3.5 0 1 1-3.5-3.5H6V3zm0 13.667H4.5a1.5 1.5 0 1 0 1.5 1.5v-1.5zm13 0h-1.5a1.5 1.5 0 1 0 1.5 1.5v-1.5z"></path></svg>
         </span>
-        <span class="title">${iterator}</span>
+        <span class="title">${iterator.split(".mp3")[0]}</span>
     </span>
     <span class="hidden playbutton">
         <button  class="bg-[#1db954] mt-[-4px] rounded-[90px] w-[37px] h-[37px] fill-[#1f1f1f] flex items-center justify-center">
@@ -407,19 +443,19 @@ for (const iterator of document.getElementsByClassName("music")) {
         iterator.getElementsByClassName("playbutton")[0].classList.add("hidden");
     })
 }
-playPause2(songslist[0],0,playlistTitle);
+playPause2(songslist[0],0,playlistTitle,true);
 for (let index = 0; index < btn3.length; index++) {
     const element = btn3[index];
     element.addEventListener("click",()=>{
-        playPause2(songslist[index],index,playlistTitle);
+        playPause2(songslist[index],index,playlistTitle,true);
     })   
 }
 }
 document.getElementById("previousButton").addEventListener("click",()=>{
-    playPause2(songslist[currentIndexOfSongs-1],currentIndexOfSongs-1,curretPlaylist)
+    playPause2(songslist[currentIndexOfSongs-1],currentIndexOfSongs-1,curretPlaylist,true)
 });
 document.getElementById("forwardButton").addEventListener("click",()=>{
-    playPause2(songslist[currentIndexOfSongs+1],currentIndexOfSongs+1,curretPlaylist)
+    playPause2(songslist[currentIndexOfSongs+1],currentIndexOfSongs+1,curretPlaylist,true)
 });
 
 
